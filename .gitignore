@@ -1,3 +1,7 @@
-./eventos/node_modules/
-./logins/node_modules/
-./registers/node_modules/
+eventos/node_modules/
+logins/node_modules/
+registers/node_modules/
+
+eventos/eventos.zip
+logins/logins.zip
+registers/registers.zip
