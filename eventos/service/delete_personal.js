@@ -1,11 +1,12 @@
 const util = require('../utils/util');
 const auth = require('../utils/auth');
 
-const { DynamoDBClient, UpdateItemCommand } = require("@aws-sdk/client-dynamodb"); // CommonJS import
+const { DynamoDBClient ,DeleteItemCommand } = require('@aws-sdk/client-dynamodb')
 const client = new DynamoDBClient({
     region:'us-east-1'
-});
-async function modificar_qrs(requestBody) {
+})
+
+async function delete_personal(requestBody) {
     if (!requestBody.nombre_discoteca || !requestBody.token || !requestBody.params) {
         return util.buildResponse(401, {
             message : "Faltan datos"
@@ -14,25 +15,25 @@ async function modificar_qrs(requestBody) {
     const nombre_discoteca_token = requestBody.nombre_discoteca;
     const token = requestBody.token;
     const params = requestBody.params;
-
-
     const verification = auth.verifyToken(nombre_discoteca_token,token);
     if (!verification.verified) {
         return util.buildResponse(401, verification);
     }
-    if (params === null || params.rango === "" || params.dni === "" || params.cant === "") {
+    if (params == null || params.rango === "" || params.dni === ""){
         return util.buildResponse(401, 'revise el rango, correo o dni');
     }
-    const modQRresponse = await modQR(nombre_discoteca_token.toLowerCase().trim(),params);
-    if (modQRresponse.httpStatusCode !== 200)  {
-        return util.buildResponse(503, { message : "Error en el servidor. Porfavor intente luego", response: modQRresponse});
+
+
+    const deletePersonalResponse = await deletePersonal(nombre_discoteca_token.toLowerCase().trim(),params);
+    if (deletePersonalResponse.httpStatusCode !== 200) {
+        return util.buildResponse(503, {message : "Error en el servidor. Porfavor intente luego", response: deletePersonalResponse});
     }
-    return util.buildResponse(200 , { response : modQRresponse});
+    return util.buildResponse(200 , {response : deletePersonalResponse});
 }
 
-async function modQR(nombre_discoteca, params) {
-    console.log(params);
+async function deletePersonal(nombre_discoteca , params) {
     let dynamodbTable = "";
+
     if (params.rango === "coordinador") {
         dynamodbTable = "t_discoteca_coordinadores"
     }
@@ -44,29 +45,19 @@ async function modQR(nombre_discoteca, params) {
     }
 
     const input = {
-        ExpressionAttributeNames: {
-            "#QR":"qrs"
-        },
-        ExpressionAttributeValues: {
-            ":q" : {
-                "S":params.cant
-            }
-        },
         Key: {
             "nombre_discoteca": {
-                "S":nombre_discoteca
+                "S": nombre_discoteca
             },
-            "dni" :  {
-                "S": params.dni
+            "dni": {
+                "S":params.dni
             }
         },
-        TableName: dynamodbTable,
-        UpdateExpression : "SET #QR = :q"
+        TableName: dynamodbTable
     }
-
-    const command = new UpdateItemCommand(input);
+    const  command = new DeleteItemCommand(input);
     const response = await client.send(command);
     return response.$metadata;
 }
 
-module.exports.modificar_qrs = modificar_qrs;
+module.exports.delete_personal = delete_personal;
